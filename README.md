@@ -27,14 +27,14 @@ docker/
   php.ini
   www.conf
 k8s/
-  singleapp-fifa-serviceaccount-production.yaml              # IRSA
-  singleapp-fifa-engagement-otel-config-production.yaml      # ADOT Collector config
-  singleapp-fifa-engagement-with-xray-deployment-production.yaml
-  singleapp-fifa-engagement-app-env-production.yaml
-  singleapp-fifa-engagement-nginx-conf-production.yaml
-  singleapp-fifa-engagement-nginx-default-conf-production.yaml
-  singleapp-fifa-engagement-svc-production.yaml
-  singleapp-fifa-engagement-ingress-production.yaml
+  demo-serviceaccount-production.yaml              # IRSA
+  demo-test-otel-config-production.yaml      # ADOT Collector config
+  demo-test-with-xray-deployment-production.yaml
+  demo-test-app-env-production.yaml
+  demo-test-nginx-conf-production.yaml
+  demo-test-nginx-default-conf-production.yaml
+  demo-test-svc-production.yaml
+  demo-test-ingress-production.yaml
 ```
 
 ## ⚠️ Before you use these
@@ -59,7 +59,7 @@ should copy.
 docker run --rm <image> php -m | grep -i opentelemetry
 
 # 2. Collector is up
-POD=$(kubectl get pods -n production -l app=singleapp-fifa-engagement-production -o jsonpath='{.items[0].metadata.name}')
+POD=$(kubectl get pods -n production -l app=demo-test-production -o jsonpath='{.items[0].metadata.name}')
 kubectl logs $POD -n production -c otel-collector | grep "Everything is ready"
 
 # 3. Spans are exporting
