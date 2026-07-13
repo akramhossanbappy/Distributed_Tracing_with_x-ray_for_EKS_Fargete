@@ -1,0 +1,38 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-test-app-env-production
+  namespace: production
+data:
+  APP_NAME: "demo test Service"
+  MICROSERVICES_NAME: "test"
+  APP_ENV: "production"
+  APP_URL: "http://localhost:8072"
+
+  # Default Accept-Language
+  DEFAULT_LANGUAGE: "en"
+  REDIS_ENABLE: "true"
+  REDIS_TYPE: "cluster"
+  REDIS_HOST: "xxxxxxxx.cache.amazonaws.com"
+  REDIS_PASSWORD: ""
+  REDIS_PORT: "6379"
+  REDIS_PREFIX: "app:"
+  REDIS_ENABLE_PIPELINE: "true"
+  REDIS_PERSISTENT: "true"
+  REDIS_CLUSTERS: "xxxxxxxx.cache.amazonaws.com:6379"
+  REDIS_CLUSTER_NODES: "xxxxxxxx.cache.amazonaws.com:6379"
+  REDIS_DB: "0"
+  REDIS_TIMEOUT: "1.0"
+
+
+  FLUENTD_HOST: "xxxxxxxx-fluentd-svc.production.svc.cluster.local"
+  FLUENTD_PORT: "24231"
+
+
+  # Static content base URL (For public resources)
+  STATIC_CONTENT_BASE_URL: "https://xxxxxxxx-static.example.com"
+
+
+
+
+
