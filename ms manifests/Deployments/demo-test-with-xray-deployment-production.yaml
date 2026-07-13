@@ -1,0 +1,207 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo-test-with-xray-production
+  namespace: production
+spec:
+  selector:
+    matchLabels:
+      app: demo-test-production
+      apm: enabled
+  template:
+    metadata:
+      labels:
+        app: demo-test-production
+        apm: enabled
+    spec:
+      serviceAccountName: demo-application
+      terminationGracePeriodSeconds: 60
+      initContainers:
+        - name: otel-collector
+          image: public.ecr.aws/aws-observability/aws-otel-collector:v0.43.0
+          restartPolicy: Always
+          args: ["--config=/etc/otel/otel-config.yaml"]
+          volumeMounts:
+            - name: otel-config
+              mountPath: /etc/otel
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 13133
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "200m"
+              memory: "256Mi"
+
+      containers:
+        - name: demo-test-production-app
+          image: <ACCOUNT_ID>.dkr.ecr.ap-southeast-1.amazonaws.com/demo-test-microservice-prod:<IMAGE_TAG>
+          ports:
+            - containerPort: 9000
+          volumeMounts:
+            - name: demo-test-code-path-production
+              mountPath: /app_dir/
+            - name: demo-storage-production
+              mountPath: /storage
+          envFrom:
+            - configMapRef:
+                name: demo-test-app-env-production
+          env:
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: TZ
+              value: Asia/Dhaka
+            - name: DEBIAN_FRONTEND
+              value: noninteractive
+            - name: OTEL_PHP_AUTOLOAD_ENABLED
+              value: "true"
+            - name: OTEL_SERVICE_NAME
+              value: "demo-test"
+            - name: OTEL_TRACES_EXPORTER
+              value: "otlp"
+            - name: OTEL_METRICS_EXPORTER
+              value: "none"
+            - name: OTEL_LOGS_EXPORTER
+              value: "none"
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: "http/protobuf"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: "http://localhost:4318"
+            - name: OTEL_EXPORTER_OTLP_TIMEOUT
+              value: "200"
+            - name: OTEL_PROPAGATORS
+              value: "xray,tracecontext,baggage"
+            - name: OTEL_TRACES_SAMPLER
+              value: "parentbased_traceidratio"
+            - name: OTEL_TRACES_SAMPLER_ARG
+              value: "0.1"
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: "deployment.environment=production,k8s.pod.name=$(MY_POD_NAME),k8s.namespace.name=$(MY_POD_NAMESPACE)"
+          resources:
+            requests:
+              memory: "12000Mi"
+              cpu: "6500m"
+            limits:
+              memory: "12000Mi"
+              cpu: "6500m"
+          readinessProbe:
+            httpGet:
+              path: /test/health/check
+              port: 80
+            failureThreshold: 6
+            periodSeconds: 30
+            initialDelaySeconds: 10
+            timeoutSeconds: 8
+          livenessProbe:
+            httpGet:
+              path: /test/health/check
+              port: 80
+            failureThreshold: 10
+            periodSeconds: 60
+            initialDelaySeconds: 60
+            timeoutSeconds: 8
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - "sh"
+                  - "-c"
+                  - |
+                    cp -r /test/* /app_dir/;
+                    cp -r /test/vendor /app_dir/;
+                    chmod 777 /app_dir;
+                    chmod -R 777 /app_dir/storage;
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - "sleep 30"
+        - name: demo-test-production-nginx
+          image: public.ecr.aws/nginx/nginx:1.27.0
+          ports:
+            - containerPort: 80
+          volumeMounts:
+            - name: demo-test-code-path-production
+              mountPath: /app_dir/
+            - name: demo-test-nginx-conf-production
+              mountPath: /etc/nginx/nginx.conf
+              subPath: nginx.conf
+            - name: demo-test-nginx-default-conf-production
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+          resources:
+            requests:
+              memory: "1024Mi"
+              cpu: "500m"
+            limits:
+              memory: "1024Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /test/health/check
+              port: 80
+            failureThreshold: 6
+            periodSeconds: 30
+            initialDelaySeconds: 10
+            timeoutSeconds: 8
+          livenessProbe:
+            httpGet:
+              path: /test/health/check
+              port: 80
+            failureThreshold: 10
+            periodSeconds: 60
+            initialDelaySeconds: 60
+            timeoutSeconds: 8
+          env:
+            - name: TZ
+              value: Asia/Dhaka
+            - name: DEBIAN_FRONTEND
+              value: noninteractive
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - "sleep 30"
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      volumes:
+        - name: demo-test-code-path-production
+          emptyDir: {}
+        - name: demo-test-nginx-conf-production
+          configMap:
+            name: demo-test-nginx-conf-production
+        - name: demo-test-nginx-default-conf-production
+          configMap:
+            name: demo-test-nginx-default-conf-production
+        - name: demo-test-app-env-production
+          configMap:
+            name: demo-test-app-env-production
+        - name: otel-config
+          configMap:
+            name: demo-test-otel-config-production
+        - name: demo-storage-production
+          persistentVolumeClaim:
+            claimName: demo-efs-pvc-production
+        # - name: demo-test-docker-secret-production
+        #   secret:
+        #     secretName: demo-test-docker-secret-production

@@ -1,0 +1,46 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-test-ingress-production
+  namespace: production
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/load-balancer-name: demo-api-alb-prod
+    alb.ingress.kubernetes.io/group.name: demo-api-alb-prod
+    alb.ingress.kubernetes.io/group.order: '100'
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:<ACCOUNT_ID>:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'
+    alb.ingress.kubernetes.io/healthcheck-path: "/healthz"
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '60'
+    alb.ingress.kubernetes.io/actions.response-healthz: >
+      {"type":"fixed-response","fixedResponseConfig":{"contentType":"text/plain","statusCode":"200","messageBody":"healthz success text"}}
+    alb.ingress.kubernetes.io/success-codes: 200-404
+    alb.ingress.kubernetes.io/tags: Project=demo
+    alb.ingress.kubernetes.io/security-groups: "demo-alb-sg-prod"
+    alb.ingress.kubernetes.io/manage-backend-security-group-rules: "false"
+    alb.ingress.kubernetes.io/load-balancer-attributes: "deletion_protection.enabled=true"
+  labels:
+    app: demo
+spec:
+  rules:   
+  - host: "app.example.com"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: "demo-test-svc-production"
+            port: 
+              number: 80   
+
+      - path: /healthz
+        pathType: Prefix
+        backend:
+          service:
+            name: "response-healthz"
+            port:
+              name: use-annotation
