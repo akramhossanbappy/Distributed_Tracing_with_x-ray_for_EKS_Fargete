@@ -381,7 +381,7 @@ and, once traffic flows:
 Exporting traces  {"#spans": 12}
 ```
 
-> _(screenshot placeholder — collector startup logs)_
+> ![ADOT Collector startup logs showing the OTLP receiver bound to 127.0.0.1:4318 and the health_check extension reaching ready state](./images/APM_init_container.png)
 
 ### 9.2 App container OTel bootstrap
 
@@ -414,8 +414,7 @@ Remember the **10% sampler** — send a handful of requests, or bump `OTEL_TRACE
 4. Open a trace and confirm the resource attributes: `k8s.pod.name`, `k8s.namespace.name`, `deployment.environment=production`
 5. Check the **Service map** — you should see a `demo-test` node
 
-> _(screenshot placeholder — X-Ray trace list)_
-> _(screenshot placeholder — X-Ray service map)_
+>![CloudWatch Trace Map showing a Client node connected to the demo-test-app service node, with latency, request-rate and fault-rate panels below](./images/x-ray_1.png)
 
 ### 9.5 Checklist
 
